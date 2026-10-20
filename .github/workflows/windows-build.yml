@@ -1,0 +1,62 @@
+name: Windows desktop (offline providers)
+on:
+  workflow_dispatch:
+  push:
+    branches: [master, main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: windows-2022
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: console/package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install Python dependencies (no provider SDK)
+        run: python -m pip install -e ".[test]" pyinstaller==6.22.3
+      - name: Install locked frontend dependencies
+        working-directory: console
+        run: npm ci --ignore-scripts
+      - name: Offline unit and integration tests (including native DPAPI)
+        run: python -m pytest tests/unit tests/integration -q -p no:cacheprovider
+      - name: Frontend tests
+        working-directory: console
+        run: npm run test
+      - name: Frontend production build
+        working-directory: console
+        run: npm run build
+      - name: Package standalone Python backend and notices
+        run: python scripts/build_desktop.py
+      - name: Verify packaged backend lifecycle without models
+        run: python scripts/verify_desktop_backend.py build/desktop-kernel/ai-team-kernel/ai-team-kernel.exe
+      - name: Build Tauri EXE and unsigned NSIS installer
+        working-directory: console
+        run: npm run desktop:build
+      - name: Record resolved Rust dependencies
+        working-directory: console/src-tauri
+        run: cargo metadata --locked --format-version 1 > ../../rust-dependencies.json
+      - name: Upload installer and build dependency evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-team-runtime-windows-unsigned
+          if-no-files-found: error
+          path: |
+            console/src-tauri/target/release/bundle/nsis/*-setup.exe
+            console/src-tauri/target/release/ai-team-console.exe
+            build/desktop-kernel/ai-team-kernel/**
+            console/src-tauri/Cargo.lock
+            console/rust-dependencies.json
+            build/notices/**
+          retention-days: 14

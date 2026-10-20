@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+[project]
+name = "ai-team-runtime"
+version = "0.2.2"
+description = "Deterministic local multi-agent collaboration runtime"
+requires-python = ">=3.11"
+license = "Apache-2.0"
+dependencies = ["pydantic>=2,<3", "rich>=13", "typer>=0.12"]
+[project.optional-dependencies]
+test = ["pytest>=8"]
+dsh = ["deepseek-harness-sdk==0.2.1rc2"]
+[project.scripts]
+ai-team = "ai_team.cli:app"
+[tool.setuptools.packages.find]
+where = ["src"]
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

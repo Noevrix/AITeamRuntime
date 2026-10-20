@@ -1,0 +1,24 @@
+{
+  "name": "ai-team-console",
+  "version": "0.2.2",
+  "license": "Apache-2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite build --watch",
+    "build": "vite build",
+    "test": "vitest run",
+    "desktop": "tauri dev",
+    "desktop:build": "tauri build"
+  },
+  "dependencies": {
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "2.12.3",
+    "vite": "8.3.4",
+    "vitest": "5.0.5",
+    "jsdom": "30.1.3"
+  }
+}
