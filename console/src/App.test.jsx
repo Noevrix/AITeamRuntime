@@ -41,7 +41,7 @@ describe('local console',()=>{
     await render();await click('创建草稿');
     expect(calls.some(([,o])=>o.method==='POST')).toBe(false);
     container.querySelector('[name=title]').value='test draft';
-    await act(async()=>container.querySelector('form').dispatchEvent(new Event('submit',{bubbles:true,cancelable:true})));
+    await act(async()=>container.querySelector('form.modal').dispatchEvent(new Event('submit',{bubbles:true,cancelable:true})));
     const writes=calls.filter(([,o])=>o.method==='POST');
     expect(writes).toHaveLength(1);
     expect(writes[0][0]).toBe('/api/drafts');

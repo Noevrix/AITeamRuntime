@@ -9,8 +9,11 @@ from urllib.parse import urlsplit
 from .service import ConsoleService, ConsoleError
 
 
-def make_server(root, port=8765, web_root=None):
+def make_server(root, port=8765, web_root=None, enable_models=False):
+    from .collaboration import Collaboration
+    collaboration = Collaboration(root, enabled=enable_models)
     service = ConsoleService(root)
+    service.execution_enabled = enable_models
     web_root = Path(web_root).resolve() if web_root else Path(root).resolve() / "console" / "dist"
     session = secrets.token_urlsafe(32)
     csrf = secrets.token_urlsafe(32)
@@ -69,7 +72,11 @@ def make_server(root, port=8765, web_root=None):
                     raise ConsoleError("QUERY_NOT_SUPPORTED")
                 if api:
                     if parts == ["api", "session"]:
-                        result = {"csrf": csrf, "execution_enabled": False}
+                        result = {"csrf": csrf, "execution_enabled": enable_models}
+                    elif parts == ["api", "conversations"]:
+                        result = collaboration.list()
+                    elif len(parts) == 3 and parts[1] == "conversations":
+                        result = collaboration.read(parts[2])
                     elif parts == ["api", "overview"]:
                         result = service.overview()
                     elif parts == ["api", "agents"]:
@@ -117,12 +124,31 @@ def make_server(root, port=8765, web_root=None):
                 # Drain only a bounded body before rejection so Windows does not
                 # reset the socket with unread bytes instead of delivering 403/404.
                 self.validate(api=True, write=True)
-                if self.path != "/api/drafts":
-                    raise ConsoleError("NOT_FOUND", 404)
                 if self.headers.get("Content-Type") != "application/json":
                     raise ConsoleError("JSON_REQUIRED", 415)
                 body = json.loads(raw)
-                self.reply(201, service.create_draft(body))
+                if not isinstance(body, dict):
+                    raise ConsoleError("INVALID_BODY")
+                parts = self.path.strip("/").split("/")
+                if self.path == "/api/drafts":
+                    result = service.create_draft(body)
+                elif self.path == "/api/conversations":
+                    result = collaboration.create(body)
+                elif len(parts) == 4 and parts[:2] == ["api", "conversations"]:
+                    key, action = parts[2:]
+                    if action == "comment":
+                        result = collaboration.comment(key, body)
+                    elif action == "cancel":
+                        result = collaboration.cancel(key)
+                    elif action in {"discuss", "execute"}:
+                        result = collaboration.start(key, action, body)
+                    elif action == "plan":
+                        result = collaboration.edit_plan(key, body)
+                    else:
+                        raise ConsoleError("NOT_FOUND", 404)
+                else:
+                    raise ConsoleError("NOT_FOUND", 404)
+                self.reply(201, result)
             except ConsoleError as exc:
                 self.reply(exc.status, {"error": exc.code})
             except (ValueError, UnicodeError):
@@ -132,23 +158,26 @@ def make_server(root, port=8765, web_root=None):
 
     server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
     server.daemon_threads = True
+    server.collaboration = collaboration
     return server
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Local Console; no model execution or OAuth endpoints.")
+    parser = argparse.ArgumentParser(description="Local Console; models disabled unless explicitly enabled.")
     parser.add_argument("--port", type=int, default=8765)
+    parser.add_argument("--enable-models", action="store_true")
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[3]
     if not (root / "console/dist/index.html").is_file():
         parser.error("Build frontend first: cd console; npm ci; npm run build")
-    server = make_server(root, args.port)
-    print(f"AI Team Console: http://127.0.0.1:{server.server_port}  [model execution disabled]", flush=True)
+    server = make_server(root, args.port, enable_models=args.enable_models)
+    print(f"AI Team Console: http://127.0.0.1:{server.server_port}  [models enabled: {args.enable_models}]", flush=True)
     try:
         server.serve_forever()
     except KeyboardInterrupt:
         pass
     finally:
+        server.collaboration.close()
         server.server_close()
 
 

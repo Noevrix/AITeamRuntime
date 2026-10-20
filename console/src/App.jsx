@@ -1,6 +1,8 @@
 import React, {useEffect, useState} from 'react';
+import Collaboration from './Collaboration.jsx';
 
 const pages = [
+  ['collaboration','◇','与 AI 团队协作','Collaborative Workspace'],
   ['overview','◈','团队总览','Team Overview'],['tasks','▤','任务面板','Task Board'],
   ['agents','◎','Agent 管理','Agent Management'],['timeline','⌁','协作时间线','Workflow Timeline'],
   ['blackboard','▦','共享黑板','Blackboard Explorer'],['settings','⚙','设置与诊断','Settings & Diagnostics'],
@@ -25,7 +27,7 @@ async function api(path, options={}) {
 function JsonView({value}) {return <pre className="json">{text(value) || '无记录'}</pre>;}
 
 export default function App() {
-  const [page,setPage]=useState('overview'), [overview,setOverview]=useState(null);
+  const [page,setPage]=useState('collaboration'), [overview,setOverview]=useState(null);
   const [run,setRun]=useState(''), [snapshot,setSnapshot]=useState(null),[error,setError]=useState('');
   const [busy,setBusy]=useState(false),[detail,setDetail]=useState(null),[status,setStatus]=useState('ALL');
   const [agentFilter,setAgentFilter]=useState('ALL'),[collection,setCollection]=useState('decisions');
@@ -57,13 +59,14 @@ export default function App() {
       <div className="workspace"><i/>本地工作空间 <span>⌄</span><small>AITeamRuntime</small></div>
       <div className="nav-label">WORKSPACE</div>
       <nav>{pages.map(([id,icon,title])=><button key={id} className={page===id?'selected':''} onClick={()=>go(id)}><span>{icon}</span>{title}{page===id&&<i/>}</button>)}</nav>
-      <div className="sidebar-foot"><span className="local-dot"/> LOCAL ONLY<p>模型执行已禁用<br/>打开或刷新不会产生模型调用</p><div>v0.2.2 <span>Windows Console</span></div></div>
+      <div className="sidebar-foot"><span className="local-dot"/> LOCAL ONLY<p>模型调用需明确确认<br/>打开或刷新不会产生模型调用</p><div>v0.3.0 <span>Windows Console</span></div></div>
     </aside>
     <div className="main">
       <header className="topbar"><div><span className="crumb">WORKSPACE</span><span className="slash">/</span>{current[2]}</div><div className="top-actions"><span className="local-pill">◉ 本地数据</span><button title="只读刷新" onClick={()=>{setError('');setRefresh(v=>v+1);}}>↻ 刷新</button></div></header>
       <main><div className="page-heading"><div><div className="eyebrow">{current[3].toUpperCase()}</div><h1>{current[2]}</h1><p>每一次协作都有迹可循。</p></div><button className="primary" onClick={()=>{setDraft(true);setSaved('');}}>＋ 创建草稿</button></div>
         {error&&<div role="alert" className="alert">{error}<button onClick={()=>setError('')}>关闭</button></div>}
         {saved&&<div role="status" className="notice">{saved}</div>}
+        {page==='collaboration'&&<Collaboration csrf={csrf}/>}
         <div className="runbar"><span>运行记录</span><select aria-label="运行记录" value={run} onChange={e=>setRun(e.target.value)}><option value="">选择记录</option>{overview?.runs.map(r=><option key={r.id} value={r.id}>{r.name} {r.database_status!=='READABLE'?'· 不可读':''}</option>)}</select><span className="subtle">{snapshot?.truncated.length ? '部分集合超过 1000 条，当前为最新窗口' : '只读历史 · 草稿独立保存'}</span></div>
 
         {page==='overview'&&<>
@@ -77,7 +80,7 @@ export default function App() {
         </>}
 
         {page==='tasks'&&<section className="panel"><div className="section-head"><h2>任务 <span>{tasks.length}</span></h2><div className="filters"><select aria-label="任务状态" value={status} onChange={e=>setStatus(e.target.value)}><option value="ALL">所有状态</option>{Object.entries(names).map(([v,t])=><option key={v} value={v}>{t}</option>)}</select><select aria-label="任务 Agent" value={agentFilter} onChange={e=>setAgentFilter(e.target.value)}><option value="ALL">所有 Agent</option>{[...new Set(tasks.map(t=>t.assigned_to).filter(Boolean))].map(a=><option key={a}>{a}</option>)}</select></div></div>
-          <div className="table-wrap"><table><thead><tr><th>任务 / ID</th><th>Agent</th><th>阶段</th><th>状态</th><th>更新</th><th>返工</th></tr></thead><tbody>{tasks.filter(t=>(status==='ALL'||t.status===status)&&(agentFilter==='ALL'||t.assigned_to===agentFilter)).map(t=><tr key={t.id}><td><button className="task-link" onClick={()=>showTask(t.id)}>{t.title}<small>{short(t.id)}</small></button></td><td>{agentNames[t.assigned_to]||t.assigned_to||'无记录'}</td><td>{t.task_type||'无记录'}</td><td><Badge value={t.status}/></td><td>{time(t.updated_at)}</td><td>{t.revision_count??'无记录'}</td></tr>)}</tbody></table></div>{!tasks.filter(t=>(status==='ALL'||t.status===status)&&(agentFilter==='ALL'||t.assigned_to===agentFilter)).length&&<Empty message="没有符合筛选条件的任务"/>}<p className="footnote">草稿状态为 PENDING。本版本没有执行、重试或取消模型任务的 API。</p></section>}
+          <div className="table-wrap"><table><thead><tr><th>任务 / ID</th><th>Agent</th><th>阶段</th><th>状态</th><th>更新</th><th>返工</th></tr></thead><tbody>{tasks.filter(t=>(status==='ALL'||t.status===status)&&(agentFilter==='ALL'||t.assigned_to===agentFilter)).map(t=><tr key={t.id}><td><button className="task-link" onClick={()=>showTask(t.id)}>{t.title}<small>{short(t.id)}</small></button></td><td>{agentNames[t.assigned_to]||t.assigned_to||'无记录'}</td><td>{t.task_type||'无记录'}</td><td><Badge value={t.status}/></td><td>{time(t.updated_at)}</td><td>{t.revision_count??'无记录'}</td></tr>)}</tbody></table></div>{!tasks.filter(t=>(status==='ALL'||t.status===status)&&(agentFilter==='ALL'||t.assigned_to===agentFilter)).length&&<Empty message="没有符合筛选条件的任务"/>}<p className="footnote">草稿状态为 PENDING。草稿不会执行；请从协作工作区显式启动新会话。</p></section>}
 
         {page==='agents'&&<div className="agent-detail-grid">{overview?.agents.map((a,i)=><section className="panel" key={a.id}><div className="section-head"><div className="agent-title"><span className={'avatar avatar-'+i}>{a.id[0]}</span><h2>{a.id}<small>{a.role}</small></h2></div><Badge value={a.status}/></div><dl><dt>实时在线</dt><dd>UNKNOWN · 未调用 Provider</dd><dt>授权状态</dt><dd><Badge value={a.authorization}/></dd><dt>默认模式</dt><dd>{a.default_mode}</dd></dl><div className="chips">{a.capabilities.map(c=><span key={c}>{c}</span>)}</div><p className="agent-note">{a.limits}</p><h4>历史验证依据</h4>{a.evidence.length?a.evidence.map(e=><button className="reference" key={e.message_id} onClick={()=>{setRun(e.run_id);go('tasks');}}>{e.result} · {short(e.task_id)} <small>{time(e.time)}</small></button>):<p className="subtle">无真实模型验收证据</p>}<button className="secondary" onClick={()=>showRecord('agent',a)}>关联任务、失败与配置详情 ↗</button></section>)}</div>}
 
@@ -85,7 +88,7 @@ export default function App() {
 
         {page==='blackboard'&&<section className="panel"><div className="section-head"><h2>Blackboard</h2><span className="subtle">原始记录 · 不自动解释为验收通过</span></div><div className="tabs">{[['projects','项目'],['tasks','任务'],['messages','Agent 消息'],['decisions','规划 / 决策'],['artifacts','产物引用']].map(([v,t])=><button key={v} className={collection===v?'active':''} onClick={()=>setCollection(v)}>{t} <span>{tables[v]?.length||0}</span></button>)}</div>{tables[collection]?.length?<div className="records">{tables[collection].map(r=><button key={r.id} className="record" onClick={()=>showRecord(collection,r)}><div><span className="record-icon">▧</span><strong>{r.title||r.path||r.type||short(r.id)}</strong>{collection==='messages'&&<Badge value={modeOf(r)}/>}</div><p>{String(r.goal||r.content||r.description||r.sha256||'无内容摘要').slice(0,180)}</p><small>{short(r.id)} · {time(r.created_at||r.timestamp)} · 任务 {short(r.task_id)}</small></button>)}</div>:<Empty/>}</section>}
 
-        {page==='settings'&&<section className="panel"><h2>本地诊断</h2><p className="footnote">仅检查配置存在性与历史数据，不联网、不启动模型、不授权。</p>{diagnostics?<><dl><dt>数据目录</dt><dd>{diagnostics.data_directory}</dd><dt>SQLite</dt><dd>{diagnostics.sqlite}</dd><dt>模型执行 / OAuth</dt><dd>DISABLED / DISABLED</dd></dl><h3>Provider 配置</h3>{diagnostics.agents.map(a=><div className="config-row" key={a.id}><strong>{a.id}</strong><Badge value={a.authorization}/><button onClick={()=>showRecord('配置检查',a.configuration)}>查看非敏感结果 ↗</button></div>)}<h3>诊断报告与测试记录</h3><p className="subtle">{diagnostics.test_note}</p><div className="report-list">{diagnostics.reports.map(r=><button key={r.id} disabled={!r.exists} onClick={()=>api('reports/'+r.id).then(d=>showRecord('报告',d)).catch(()=>setError('报告不可用'))}>{r.name}<span>{r.exists?'读取 ↗':'尚未生成'}</span></button>)}</div><p>日志和运行记录：从上方选择运行记录，再进入任务、时间线或黑板。不提供任意文件读取。</p></>:<Empty message="正在读取诊断"/>}</section>}
+        {page==='settings'&&<section className="panel"><h2>本地诊断</h2><p className="footnote">仅检查配置存在性与历史数据，不联网、不启动模型、不授权。</p>{diagnostics?<><dl><dt>数据目录</dt><dd>{diagnostics.data_directory}</dd><dt>SQLite</dt><dd>{diagnostics.sqlite}</dd><dt>模型执行 / OAuth</dt><dd>{diagnostics.model_execution} / DISABLED</dd></dl><h3>Provider 配置</h3>{diagnostics.agents.map(a=><div className="config-row" key={a.id}><strong>{a.id}</strong><Badge value={a.authorization}/><button onClick={()=>showRecord('配置检查',a.configuration)}>查看非敏感结果 ↗</button></div>)}<h3>诊断报告与测试记录</h3><p className="subtle">{diagnostics.test_note}</p><div className="report-list">{diagnostics.reports.map(r=><button key={r.id} disabled={!r.exists} onClick={()=>api('reports/'+r.id).then(d=>showRecord('报告',d)).catch(()=>setError('报告不可用'))}>{r.name}<span>{r.exists?'读取 ↗':'尚未生成'}</span></button>)}</div><p>日志和运行记录：从上方选择运行记录，再进入任务、时间线或黑板。不提供任意文件读取。</p></>:<Empty message="正在读取诊断"/>}</section>}
         <footer>AI TEAM RUNTIME <span>所有状态来自本地持久化记录 · 缺失字段显示“无记录”</span></footer>
       </main>
     </div>

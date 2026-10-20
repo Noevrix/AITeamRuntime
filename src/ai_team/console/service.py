@@ -70,6 +70,7 @@ class ConsoleService:
         self.root = Path(root).resolve()
         self.runs = self.root / "runs"
         self.lock = threading.Lock()
+        self.execution_enabled = False
 
     def databases(self):
         result = {}
@@ -131,7 +132,7 @@ class ConsoleService:
                              "counts": {}, "projects": [], "last_event": "", "truncated": []})
         runs.sort(key=lambda v: v["last_event"], reverse=True)
         return clean({"runs": runs, "counts": totals, "agents": self.agents(),
-                      "execution_enabled": False, "record_limit_per_table": 1000})
+                      "execution_enabled": self.execution_enabled, "record_limit_per_table": 1000})
 
     def agents(self):
         # Verified task IDs from the accepted historical evidence chain, not live probes.
@@ -176,6 +177,9 @@ class ConsoleService:
                 "id": name, "role": role,
                 "status": "PARTIAL" if name == "WorkBuddy" else "REAL_VERIFIED" if evidence[name] else "UNKNOWN",
                 "live_status": "UNKNOWN",
+                "current_tasks": [h for h in histories[name] if h["status"] == "RUNNING"],
+                "participation": {"discussion": name != "WorkBuddy",
+                                  "implementation": name == "Codex", "review": name == "DSH"},
                 "authorization": ("CONFIGURED" if wb.get("status") == "CONFIGURED" else "AUTH_REQUIRED")
                 if name == "WorkBuddy" else "UNKNOWN",
                 "configuration": wb if name == "WorkBuddy" else {
@@ -256,7 +260,8 @@ class ConsoleService:
         return {"data_directory": str(self.runs), "sqlite": "READ_ONLY_HISTORY",
                 "reports": [{"id": str(i), "name": name, "exists": (self.root / name).is_file()}
                             for i, name in enumerate(REPORTS)],
-                "model_execution": "DISABLED", "oauth": "DISABLED", "agents": self.agents(),
+                "model_execution": "EXPLICIT_CONFIRMATION" if self.execution_enabled else "DISABLED",
+                "oauth": "DISABLED", "agents": self.agents(),
                 "test_note": "测试数字来自标注版本的验收报告；不代表后台自动执行了测试。"}
 
     def create_draft(self, body):

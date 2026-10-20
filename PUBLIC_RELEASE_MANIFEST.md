@@ -166,3 +166,29 @@ No recursive whole-project copy was used.
   No live helper was executed.
 - Original commit authors/emails/history are not imported. New commits use the
   authenticated owner's GitHub noreply identity.
+
+## V0.3.0 reviewed update
+
+Existing sanitized documents and Git history are retained. No private run data
+or provider credentials are included. New and changed source selection:
+
+- `README.md`
+- `src/ai_team/console/collaboration.py`
+- `src/ai_team/console/server.py`
+- `src/ai_team/console/service.py`
+- `src/ai_team/console/desktop.py`
+- `src/ai_team/providers/codex/adapter.py`
+- `console/src/Collaboration.jsx`
+- `console/src/Collaboration.test.jsx`
+- `console/src/App.jsx`
+- `console/src/App.test.jsx`
+- `console/src/style.css`
+- `tests/unit/test_collaboration.py`
+- `tests/unit/test_console.py`
+- `pyproject.toml`
+- `console/package.json`
+- `console/package-lock.json`
+- `console/src-tauri/Cargo.toml`
+- `console/src-tauri/tauri.conf.json`
+- `docs/conversational-workspace.md`
+- `V0_3_0_ACCEPTANCE_REPORT.md`

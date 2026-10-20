@@ -24,7 +24,8 @@ def data_root(environ=None):
 def serve(root, web_root, parent_input, output):
     if not (Path(web_root) / "index.html").is_file():
         raise ValueError("FRONTEND_MISSING")
-    server = make_server(root, 0, web_root=web_root)
+    server = make_server(root, 0, web_root=web_root,
+                         enable_models=os.environ.get("AI_TEAM_ENABLE_MODELS") == "1")
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     try:
@@ -33,6 +34,7 @@ def serve(root, web_root, parent_input, output):
         # EOF on the parent's private pipe stops this service, never tasks/data.
         parent_input.read()
     finally:
+        server.collaboration.close()
         server.shutdown()
         server.server_close()
         thread.join(timeout=5)

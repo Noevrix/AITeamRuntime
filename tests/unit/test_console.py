@@ -192,3 +192,23 @@ def test_http_draft_is_only_explicit_mutation(console,http_server):
     assert len(console.read(run)["tables"]["tasks"])==1
     assert request(http_server,"GET",f"/api/runs/{run}/tasks/absent",headers=headers)[0]==404
     assert console.read(run)["tables"]["tasks"][0]["status"]=="PENDING"
+
+
+def test_conversation_http_persistence_consent_and_csrf(console, http_server):
+    headers = session(http_server)
+    assert request(http_server, "GET", "/api/conversations", headers=headers)[0] == 200
+    assert not console.runs.exists()
+    body = json.dumps({"goal": "Build an offline tool", "request_id": "one"})
+    assert request(http_server, "POST", "/api/conversations", body,
+                   {**headers, "X-Console-CSRF": "wrong"})[0] == 403
+    assert not console.runs.exists()
+    assert request(http_server, "POST", "/api/conversations", body, headers)[0] == 201
+    assert request(http_server, "POST", "/api/conversations/one/comment",
+                   json.dumps({"content": "Add tests"}), headers)[0] == 201
+    _, _, raw = request(http_server, "GET", "/api/conversations/one", headers=headers)
+    data = json.loads(raw)
+    assert data["conversation"]["comments"] == ["Add tests"]
+    assert len(data["messages"]) == 2
+    assert request(http_server, "POST", "/api/conversations/one/discuss",
+                   '{"confirm_model_calls":true}', headers)[0] == 403
+    assert request(http_server, "POST", "/api/conversations/one/cancel", "{}", headers)[0] == 201

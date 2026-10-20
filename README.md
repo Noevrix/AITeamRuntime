@@ -1,9 +1,24 @@
-# AI Team Runtime — V0.2.2
+# AI Team Runtime — V0.3.0
 
 Local multi-agent collaboration runtime with a React team console and Windows
-Tauri desktop build pipeline. The console runs locally; desktop lifecycle code is
-prepared, but **the Windows shell and installer have not yet been built or
-launch-verified on this machine**.
+Tauri desktop build pipeline. V0.3.0 adds a conversational collaboration workspace.
+V0.2.2 was built and locally installed; V0.3.0 status is recorded in its acceptance report.
+
+## V0.3.0 collaboration
+
+The default workspace persists goals and clarifications, relays DSH proposals to
+Codex for critique, and returns the critique to DSH for a structured plan. The
+user can edit and confirm the plan before Codex implements dependency-ordered
+steps. DSH reviews actual source files and captured command-execution evidence.
+
+Development validation is **offline only**. Real V0.3.0 calls are NOT_RUN.
+Parallel execution and native pause/resume are not supported; scheduling is
+serial and bounded, cancellation is best effort, and failures never auto-retry.
+WorkBuddy remains PARTIAL / AUTH_REQUIRED. The Windows package omits the
+optional DSH SDK/runtime; use a source environment for real collaboration.
+
+See [startup, permissions and limits](docs/conversational-workspace.md) and
+[V0.3.0 acceptance](V0_3_0_ACCEPTANCE_REPORT.md). Default launch is model-disabled.
 
 ## Current scope
 
@@ -30,8 +45,9 @@ not run. Historical success does not imply current online status.
 - Blackboard Explorer: projects, tasks, messages, decisions and artifact hashes.
 - Settings & Diagnostics: non-sensitive presence checks and allowlisted reports.
 
-Opening, refreshing or closing the UI never starts, resubmits or cancels model
-tasks. Drafts do not execute. There is no workflow execution or OAuth UI endpoint.
+Opening and refreshing never starts model tasks. Drafts do not execute. The new
+workspace requires explicit planning and execution confirmation; OAuth remains unavailable.
+Closing the backend attempts to cancel its active work and never replays it.
 
 ## Windows development
 

@@ -6,11 +6,13 @@ from .app_server import AppServer
 
 
 class CodexAdapter(AgentProvider):
-    def __init__(self, executable="codex"):
+    def __init__(self, executable="codex", *, read_only=False):
+        self.read_only = read_only
         self.rpc = AppServer(executable)
         self.connected = False
         self.sessions = {}
         self.active = {}
+        self.last_commands = []
         self.lock = asyncio.Lock()
 
     def capabilities(self):
@@ -33,7 +35,7 @@ class CodexAdapter(AgentProvider):
     async def create_session(self, agent_id, workspace):
         if not await self.health_check():
             raise ProviderError("Codex unavailable")
-        result = await self.rpc.request("thread/start", {"cwd": str(workspace.resolve()), "approvalPolicy": "never", "sandbox": "workspace-write"})
+        result = await self.rpc.request("thread/start", {"cwd": str(workspace.resolve()), "approvalPolicy": "never", "sandbox": "read-only" if self.read_only else "workspace-write"})
         session = result["thread"]["id"]
         self.sessions[session] = str(workspace.resolve())
         return session
@@ -46,7 +48,9 @@ class CodexAdapter(AgentProvider):
     async def send_message(self, session_id, content):
         workspace = self.sessions[session_id]
         async with self.lock:
-            turn = await self.rpc.request("turn/start", {"threadId": session_id, "input": [{"type": "text", "text": content}], "approvalPolicy": "never", "sandboxPolicy": {"type": "workspaceWrite", "writableRoots": [workspace], "networkAccess": False}})
+            self.last_commands = []
+            policy = {"type": "readOnly"} if self.read_only else {"type": "workspaceWrite", "writableRoots": [workspace], "networkAccess": False}
+            turn = await self.rpc.request("turn/start", {"threadId": session_id, "input": [{"type": "text", "text": content}], "approvalPolicy": "never", "sandboxPolicy": policy})
             turn_id = turn["turn"]["id"]
             self.active[session_id] = turn_id
             final_text = ""
@@ -63,6 +67,15 @@ class CodexAdapter(AgentProvider):
                             item = params.get("item", {})
                             if item.get("type") == "agentMessage":
                                 final_text = item.get("text", "")
+                            elif item.get("type") == "commandExecution":
+                                # Bounded transport evidence; callers must redact before persistence.
+                                if len(self.last_commands) < 40:
+                                    self.last_commands.append({
+                                        "command": str(item.get("command", ""))[:2000],
+                                        "status": item.get("status"),
+                                        "exit_code": item.get("exitCode"),
+                                        "output": str(item.get("aggregatedOutput", ""))[:16000],
+                                    })
                         elif event["method"] == "turn/completed":
                             if params["turn"]["status"] != "completed":
                                 raise ProviderError("Codex turn failed or interrupted")

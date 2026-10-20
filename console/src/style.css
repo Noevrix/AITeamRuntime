@@ -3,3 +3,14 @@
 @media(min-width:1500px){main{padding:42px 54px}.stats{gap:20px}.agent-card{padding:26px}.agent-grid{gap:22px}}
 @media(max-width:1100px){.sidebar{width:190px;padding:26px 12px}.main{margin-left:190px}main{padding:24px}.topbar{padding:0 24px}.agent-detail-grid{grid-template-columns:1fr}.stats{gap:8px}.stat{padding:14px}.two-col{grid-template-columns:1fr}.flow-caption{gap:16px}}
 @media(max-width:760px){.sidebar{width:64px;padding:20px 8px}.brand>div,.workspace,.nav-label,.sidebar-foot{display:none}.brand{justify-content:center}.brandmark{width:34px}.sidebar nav{margin-top:32px}nav button{font-size:0;padding:12px 8px;gap:0}nav button>span{font-size:20px}nav button i{display:none}.main{margin-left:64px}.stats{grid-template-columns:repeat(2,1fr)}.agent-grid,.records{grid-template-columns:1fr}.runbar{flex-wrap:wrap}.runbar>.subtle{margin:0}.flow-caption{flex-wrap:wrap}.flow-caption small{margin:0}.timeline-item{gap:10px}.timeline-item time{width:100px}.topbar{padding:0 16px}.crumb{display:none}.slash{display:none}main{padding:20px 16px}.page-heading{align-items:start;gap:12px}h1{font-size:24px}footer span{display:none}}
+/* Collaborative workspace: reuse existing panel and control styles. */
+.collaboration{display:grid;grid-template-columns:180px minmax(300px,1fr) 260px;gap:16px;align-items:start}
+.collaboration pre{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;line-height:1.6}
+.collaboration textarea{display:block;width:100%;box-sizing:border-box;margin:12px 0}
+.collaboration label{display:block;margin:16px 0}
+.collaboration small{display:block;overflow-wrap:anywhere;color:#87949f;font-size:11px}
+.conversation-list button{display:block;text-align:left;width:100%;margin:10px 0}
+.chat-message{border-bottom:1px solid #26333b;padding:16px 0}
+.collaboration button{margin:8px 8px 8px 0}
+@media(max-width:1200px){.collaboration{grid-template-columns:160px minmax(0,1fr)}.conversation-results{grid-column:1/-1}}
+@media(max-width:760px){.collaboration{display:block}.collaboration .panel{margin-bottom:16px}}
