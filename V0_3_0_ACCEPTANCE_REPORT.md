@@ -12,10 +12,10 @@ Date: 2026-10-21. Development and acceptance are offline; no real model calls.
 | PARALLEL_EXECUTION | NOT_SUPPORTED — bounded serial scheduling |
 | CROSS_REVIEW | PASS — offline actual fixture files/command evidence and strict decisions; real review NOT_RUN |
 | OFFLINE_TESTS | Targeted backend 44 passed; frontend 9 passed; original unit/integration 177 passed; public-copy regression 176 passed, 0 failed, 1 skipped |
-| GITHUB_SOURCE | NOT_RUN — pending final audit |
-| GITHUB_COMMIT | NOT_CREATED |
-| WINDOWS_CI | NOT_RUN |
-| WINDOWS_INSTALLER | NOT_GENERATED for V0.3.0 |
+| GITHUB_SOURCE | PUSHED |
+| GITHUB_COMMIT | `5164515fb97f06ed5a141297dd836ffd19638702` (tested source commit) |
+| WINDOWS_CI | PASS — run `39455293746` on the exact source SHA |
+| WINDOWS_INSTALLER | GENERATED — unsigned NSIS, version 0.3.0 |
 | REAL_MODEL_CALLS | 0 |
 
 ## What changed
@@ -102,3 +102,29 @@ pattern findings. The only working-tree match is a synthetic credential literal
 in the new redaction regression test, reviewed as test data. Apache-2.0 bytes
 match the existing public license. No private absolute paths or runtime data
 are included in this update. Heuristic scanning is not a universal secret proof.
+
+## Final GitHub and Windows acceptance
+
+- Source commit: [5164515fb97f06ed5a141297dd836ffd19638702](https://github.com/Noevrix/AITeamRuntime/commit/5164515fb97f06ed5a141297dd836ffd19638702).
+- CI: [run 39455293746](https://github.com/Noevrix/AITeamRuntime/actions/runs/39455293746), completed SUCCESS, matching head SHA.
+- Windows CI Python tests: 176 passed, 0 failed, 1 skipped (optional SDK contract).
+- Windows CI frontend: 9 passed. React production build PASS.
+- Packaged backend lifecycle smoke PASS, Tauri release EXE PASS, NSIS installer PASS.
+- Artifact: `ai-team-runtime-windows-unsigned`, ID `12280162617`, 39,227,355 bytes, not expired at verification.
+- Server-reported ZIP digest: `sha256:4fe33048c305b10a763fc0c14f7c7add851b8d2af50a9de330528d62d7e05a11`.
+- Installer: `AI Team Runtime_0.3.0_x64-setup.exe`. This turn does not install it or replace V0.2.2.
+- Local browser smoke: V0.3.0 collaboration workspace loaded, model endpoints disabled. No tasks submitted.
+- Protection check: 138 baseline files checked; 14 changed files all in the explicit release allowlist, no unexpected changes; 15 database files unchanged.
+
+This final report is a documentation-only follow-up to the tested source commit.
+Its commit uses `[skip ci]` to avoid rebuilding identical application sources.
+CI PASS refers specifically to the linked source SHA, not to a new unrun build.
+Original development work remains uncommitted on its original HEAD; only the
+separate public copy is committed and pushed. No Release or tag was created.
+
+Artifact download verification: PASS. Downloaded using the authenticated GitHub
+CLI from the exact successful run into a fresh local directory. Installer size
+17,533,071 bytes, ProductVersion 0.3.0, Authenticode NotSigned. Installer SHA-256:
+`84E638D7C9FEC23D475910A9AD9CA487A67A0E0C32560FBC33840AD32656C617`.
+No installer was executed. Remote ZIP digest is reported as metadata, not a
+locally recomputed ZIP checksum.
